@@ -22,6 +22,11 @@ namespace SwitcherWebControl.Devices
 
         protected SerialPort Port => port;
 
+        public abstract int GPICount { get; }
+        public abstract int GPOCount { get; }
+        public abstract int AudioInputCount { get; }
+        public abstract int AudioOutputCount { get; }
+
         public virtual void Initialize()
         {
             //Attempt to open the serial port
@@ -40,6 +45,26 @@ namespace SwitcherWebControl.Devices
         public virtual void Dispose()
         {
             port.Dispose();
+        }
+
+        /// <summary>
+        /// Sends command out the serial port.
+        /// </summary>
+        /// <param name="command"></param>
+        protected void SendSerialCommand(string command)
+        {
+            //Encode request with ASCII
+            byte[] request = Encoding.ASCII.GetBytes(command);
+
+            //Send
+            try
+            {
+                port.Write(request, 0, request.Length);
+            }
+            catch
+            {
+                throw new FormattedException("Failed to transmit serial command.");
+            }
         }
         
         /// <summary>
@@ -77,5 +102,36 @@ namespace SwitcherWebControl.Devices
 
             return Encoding.ASCII.GetString(response, 0, read);
         }
+
+        /// <summary>
+        /// Reads a line from the serial port. Throws an exception on timeout.
+        /// </summary>
+        /// <returns></returns>
+        protected string ReadSerialLine()
+        {
+            //Attempt to recieve data
+            string response;
+            try
+            {
+                response = port.ReadLine();
+            }
+            catch (TimeoutException)
+            {
+                throw new FormattedException("Timed out waiting for data from the device.");
+            }
+            catch
+            {
+                throw new FormattedException("Failed to read data from the serial port.");
+            }
+
+            return response.TrimEnd('\r');
+        }
+
+        public abstract ulong ReadOptos();
+        public abstract ulong ReadRelays();
+        public abstract void SetRelays(ulong relays);
+        public abstract void SetRelay(int index, bool set);
+        public abstract ulong[] ReadAudioOutputs();
+        public abstract ulong[] SetAudioOutputs(ulong[] state);
     }
 }
