@@ -1,4 +1,5 @@
-﻿using SwitcherWebControl.Config;
+﻿using Newtonsoft.Json.Linq;
+using SwitcherWebControl.Config;
 using SwitcherWebControl.Exceptions;
 using System;
 using System.Collections.Generic;
@@ -10,9 +11,24 @@ namespace SwitcherWebControl.Devices.BTools
 {
     public class BTools82Plus : SerialControlDevice
     {
-        public BTools82Plus(SerialPortConfig portInfo, int deviceId) : base(portInfo)
+        public BTools82Plus(ConfigSerialPort portInfo, int deviceId) : base(portInfo)
         {
             this.deviceId = deviceId;
+        }
+
+        public static BTools82Plus InflateDevice(JObject rawInfo)
+        {
+            //Convert the raw info to our config
+            if (rawInfo == null)
+                throw new FormattedException("device_info was null.");
+            BToolsConfig info = rawInfo.ToObject<BToolsConfig>();
+
+            //Check fields
+            if (info == null || info.Port == null)
+                throw new FormattedException("Missing fields in config.");
+
+            //Create
+            return new BTools82Plus(info.Port, info.DeviceId);
         }
 
         private readonly int deviceId;

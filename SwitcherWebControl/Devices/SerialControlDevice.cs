@@ -11,12 +11,17 @@ namespace SwitcherWebControl.Devices
 {
     public abstract class SerialControlDevice : IControlDevice
     {
-        public SerialControlDevice(SerialPortConfig portInfo)
+        public SerialControlDevice(ConfigSerialPort portInfo)
         {
+            //Validate port info
+            if (portInfo == null || portInfo.TimeoutMs == 0 || portInfo.BaudRate == 0 || portInfo.PortName == null)
+                throw new FormattedException("Port info is invalid.");
+
+            //Set
             this.portInfo = portInfo;
         }
 
-        private readonly SerialPortConfig portInfo;
+        private readonly ConfigSerialPort portInfo;
 
         private SerialPort port;
 

@@ -22,6 +22,8 @@ namespace SwitcherWebControl.Web
         private readonly HttpListener server;
         private readonly WebControlDevice[] devices;
 
+        public WebControlDevice[] Devices => devices;
+
         public void RunServer()
         {
             server.Start();

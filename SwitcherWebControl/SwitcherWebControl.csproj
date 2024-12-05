@@ -34,7 +34,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug - Remote|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>\\192.168.0.205\c\SerialControl\</OutputPath>
+    <OutputPath>\\192.168.0.205\c\SerialControl\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -56,8 +56,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Config\SerialPortConfig.cs" />
+    <Compile Include="ConfigInflator.cs" />
+    <Compile Include="Config\ConfigDevice.cs" />
+    <Compile Include="Config\ConfigRoot.cs" />
+    <Compile Include="Config\ConfigSerialPort.cs" />
     <Compile Include="Devices\BTools\BTools82Plus.cs" />
+    <Compile Include="Devices\BTools\BToolsConfig.cs" />
     <Compile Include="Devices\SerialControlDevice.cs" />
     <Compile Include="Exceptions\FormattedException.cs" />
     <Compile Include="IControlDevice.cs" />
