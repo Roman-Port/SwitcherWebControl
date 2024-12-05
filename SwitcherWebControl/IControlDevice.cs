@@ -17,6 +17,11 @@ namespace SwitcherWebControl
         void Initialize();
 
         /// <summary>
+        /// Display label for identifying the device.
+        /// </summary>
+        string Label { get; }
+
+        /// <summary>
         /// Gets the number of input optos the device supports. Should not change.
         /// </summary>
         int GPICount { get; }

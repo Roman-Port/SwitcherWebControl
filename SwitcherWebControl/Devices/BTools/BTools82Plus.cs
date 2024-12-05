@@ -17,6 +17,8 @@ namespace SwitcherWebControl.Devices.BTools
 
         private readonly int deviceId;
 
+        protected override string DeviceLabel => "BTools 8.2";
+
         public override int GPICount => 16;
 
         public override int GPOCount => 8;
@@ -24,18 +26,6 @@ namespace SwitcherWebControl.Devices.BTools
         public override int AudioInputCount => 8;
 
         public override int AudioOutputCount => 2;
-
-        public void Test()
-        {
-            ulong[] result = SetAudioOutputs(new ulong[]
-            {
-                1, 2
-            });
-            Console.WriteLine(result[0]);
-            Console.WriteLine(result[1]);
-            Console.WriteLine(ReadOptos());
-            Console.WriteLine(ReadRelays());
-        }
 
         /* SERIAL UTILS */
 
@@ -197,6 +187,15 @@ namespace SwitcherWebControl.Devices.BTools
             //Validate state array size
             if (state == null || state.Length != AudioOutputCount)
                 throw new ArgumentException($"State array size must be exactly {AudioOutputCount}.");
+
+            //Request current state and check if it matches what we're setting it to.
+            //If it matches the requested state, don't do anything as the switcher will respond with nothing.
+            ulong[] oldState = ReadAudioOutputs();
+            bool oldStateChanged = false;
+            for (int i = 0; i < Math.Min(oldState.Length, state.Length); i++)
+                oldStateChanged = oldStateChanged || oldState[i] != state[i];
+            if (!oldStateChanged)
+                return oldState;
 
             //Build the command. BTools uses A-D for the state of each input which can be interpreted as a kind of table
             string cmd = "B";

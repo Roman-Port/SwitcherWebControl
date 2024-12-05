@@ -21,7 +21,9 @@ namespace SwitcherWebControl.Devices
         private SerialPort port;
 
         protected SerialPort Port => port;
+        protected abstract string DeviceLabel { get; }
 
+        public string Label => $"{DeviceLabel} (on {portInfo.PortName})";
         public abstract int GPICount { get; }
         public abstract int GPOCount { get; }
         public abstract int AudioInputCount { get; }
