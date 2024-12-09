@@ -1,0 +1,304 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+
+    <title>Switcher Web Control</title>
+
+    <style>
+        body, html {
+            font-family: 'Roboto', sans-serif;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            width: 100vw;
+        }
+
+        .core_container {
+            width: 920px;
+            max-width: 100vw;
+            margin-left: auto;
+            margin-right: auto;
+            margin: 40px auto;
+        }
+
+        .switcher {
+            background: #f5f5f5;
+            border: 1px solid #c3c3c3;
+        }
+
+        .switcher_header {
+            padding: 15px;
+            background-color: #e3e3e3;
+            border-bottom: 1px solid #c3c3c3;
+        }
+
+        .switcher_header_title {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .switcher_header_sub {
+            font-size: 15px;
+            font-style: italic;
+            color: #3d3d3d;
+        }
+
+        .switcher_content {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .switcher_content_srcs {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            background-color: white;
+            font-size: 15px;
+        }
+
+        .switcher_content_srcs, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            text-align: center;
+            line-height: 40px;
+        }
+
+        .switcher_content_srcs td {
+            
+        }
+
+        .switcher_content_srcs th, .switcher_content_srcs td:first-child {
+            font-weight: bold;
+        }
+
+        .switcher_content_srcs_check {
+            
+        }
+
+        .switcher_content_srcs_loading .switcher_content_srcs_check {
+            display: none;
+        }
+
+        .switcher_content_srcs_apply {
+            font-size: 15px;
+            padding: 7px 15px;
+            border: 1px solid gray;
+            margin-left: auto;
+            background: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="core_container" id="core">
+        
+    </div>
+    <script>
+        /* UTIL */
+
+        function httpGet(path, successCallback, failCallback) {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = () => {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    successCallback(JSON.parse(xmlHttp.responseText));
+                } else if (xmlHttp.readyState == 4) {
+                    failCallback();
+                }
+            }
+            xmlHttp.open("GET", path, true);
+            xmlHttp.send(null);
+        }
+
+        function httpPost(path, body, method, successCallback, failCallback) {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = () => {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    successCallback(JSON.parse(xmlHttp.responseText));
+                } else if (xmlHttp.readyState == 4) {
+                    failCallback();
+                }
+            }
+            xmlHttp.open(method, path, true);
+            xmlHttp.setRequestHeader("Content-Type", "application/json");
+            xmlHttp.send(JSON.stringify(body));
+        }
+
+        function createDom(type, className, parent, text) {
+            var d = document.createElement(type);
+            if (className != null) {
+                d.classList.add(className);
+            }
+            if (parent != null) {
+                parent.appendChild(d);
+            }
+            if (text != null) {
+                d.innerText = text;
+            }
+            return d;
+        }
+
+        /* CORE */
+
+        function createSwitcherSrcTable(container, id, numI, numO) {
+            //Create table
+            var table = createDom("table", "switcher_content_srcs", container);
+            table.classList.add("switcher_content_srcs_loading");
+
+            //Create header
+            var header = createDom("tr", null, table);
+            createDom("th", null, header);
+            for (var i = 0; i < numI; i++) {
+                createDom("th", null, header, (i + 1).toString());
+            }
+
+            //Create rows for each output
+            var result = [];
+            for (var o = 0; o < numO; o++) {
+                //Make row and data
+                result.push([]);
+                var row = createDom("tr", null, table);
+
+                //Add side row
+                createDom("td", null, row, "OUT " + (o + 1).toString());
+
+                //Add each source
+                for (var i = 0; i < numI; i++) {
+                    var cell = createDom("td", null, row);
+                    var check = createDom("input", "switcher_content_srcs_check", cell);
+                    check.type = "checkbox";
+                    
+                    result[o].push(check);
+                }
+            }
+
+            //Create object
+            var tableData = {
+                rows: result,
+                body: table,
+                loading: true,
+                id: id,
+                numI: numI,
+                numO: numO,
+                btn: null
+            };
+
+            //Create button
+            tableData.btn = createDom("div", "switcher_content_srcs_apply", container, "Apply");
+            tableData.btn.__table = tableData;
+            tableData.btn.addEventListener("click", function () {
+                saveSwitcherSrcTable(this.__table);
+            });
+
+            return tableData;
+        }
+
+        // Updates data in a switcher table.
+        // table : Opaque object returned by createSwitcherSrcTable
+        // data  : API response
+        function updateSwitcherSrcTable(table, data) {
+            //Update rows
+            for (var o = 0; o < data.outputs.length; o++) {
+                //Get data - Get bitmask string in case it exceeds the max integer JavaScript can handle.
+                var mask = data.outputs[o].bitmask_string;
+                var row = table.rows[o];
+
+                //Loop through and update
+                for (var i = 0; i < row.length; i++) {
+                    //Determine if this is active
+                    var active = i < mask.length && mask[i] == '1';
+
+                    //Update accordingly
+                    row[i].checked = active;
+                }
+            }
+
+            //Update state
+            table.body.classList.remove("switcher_content_srcs_loading");
+            table.loading = false;
+        }
+
+        // Applies the table to the API.
+        // table : Opaque object returned by createSwitcherSrcTable
+        function saveSwitcherSrcTable(table) {
+            //Abort out if loading
+            if (table.loading) {
+                alert("Please wait for the sources to finish loading.");
+                return;
+            }
+
+            //Set to be loading
+            table.loading = true;
+            table.body.classList.add("switcher_content_srcs_loading");
+
+            //Loop through outputs and create payload
+            var outputData = [];
+            for (var o = 0; o < table.numO; o++) {
+                //Create bitmask
+                var mask = "";
+                for (var i = 0; i < table.numI; i++) {
+                    mask += table.rows[o][i].checked ? "1" : "0";
+                }
+
+                //Add to output data
+                outputData.push({
+                    index: o,
+                    bitmask_string: mask
+                });
+            }
+
+            //Create final payload
+            var payload = {
+                outputs: outputData
+            };
+
+            //Send
+            httpPost("/api/devices/" + table.id + "/audio", payload, "POST", (result) => {
+                updateSwitcherSrcTable(table, result);
+            }, () => {
+                alert("Failed to apply changes.");
+                window.location.reload();
+            });
+        }
+
+        function createSwitcher(data) {
+            //Create main window
+            var root = createDom("div", "switcher", document.getElementById("core"));
+            var header = createDom("div", "switcher_header", root);
+            var content = createDom("div", "switcher_content", root);
+
+            //Create header
+            createDom("div", "switcher_header_title", header, "Switcher - " + data.id);
+            createDom("div", "switcher_header_sub", header, data.type);
+
+            //Create switcher source table
+            var srcTable = createSwitcherSrcTable(content, data.id, data.audio_input_count, data.audio_output_count);
+
+            //Request audio info and update the table
+            httpGet("/api/devices/" + data.id + "/audio", (data) => {
+                updateSwitcherSrcTable(srcTable, data);
+            }, () => {
+                alert("Failed to get audio info for device " + data.id);
+            });
+        }
+
+        function init() {
+            //Fetch devices
+            httpGet("/api/devices", (data) => {
+                //Create switchers for each
+                for (var i = 0; i < data.devices.length; i++) {
+                    createSwitcher(data.devices[i]);
+                }
+            }, () => {
+                alert("Failed to get devices.");
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>

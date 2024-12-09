@@ -23,12 +23,8 @@ namespace SwitcherWebControl.Web
         public string Id => id;
         public IControlDevice Device => device;
 
-        public object HandleRoot(HttpListenerRequest e)
+        public object HandleRoot(HttpListenerRequest e, string path)
         {
-            //Trim off ID from URL
-            string path = e.Url.AbsolutePath.Substring(1 + id.Length);
-
-            //Check
             switch (path.ToLower())
             {
                 case "":
